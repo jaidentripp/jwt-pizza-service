@@ -1,12 +1,12 @@
 /* eslint-env jest */
-const bcrypt = require('bcrypt');
+//const bcrypt = require('bcrypt');
 
 // mock db
 jest.mock('mysql2/promise', () => {
     return {
       createConnection: jest.fn(async () => {
         return {
-          execute: jest.fn(async (sql, params) => {
+          execute: jest.fn(async (sql) => {
             // Normalize sql: mysql2 might pass a string or an object
             const query = typeof sql === 'string' ? sql : (sql?.sql || '');
   
@@ -138,7 +138,7 @@ describe('Additional edge case tests for database.js', () => {
   describe('DB utility / query helpers', () => {
     test('query delegates to connection.execute and returns results', async () => {
       const fakeConn = {
-        execute: jest.fn(async (sql, params) => [[{ ok: true }]]),
+        execute: jest.fn(async () => [[{ ok: true }]]),
       };
       const result = await DB.query(fakeConn, 'SELECT 1', []);
       expect(result).toEqual([{ ok: true }]);
@@ -236,7 +236,7 @@ describe('error paths in updateUser', () => {
     beforeEach(() => {
         fakeConn = {
           end: jest.fn(),
-          execute: jest.fn(async (sql, params) => {
+          execute: jest.fn(async (sql) => {
             const query = typeof sql === 'string' ? sql : (sql?.sql || '');
       
             // Auth
