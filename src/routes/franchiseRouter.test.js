@@ -1,5 +1,5 @@
 const request = require('supertest');
-const app = require('../service'); // path to your Express app instance
+const app = require('../service'); // express app instance
 
 const adminUser = { name: 'Admin User', email: '', password: 'password' };
 const regularUser = { name: 'Regular User', email: '', password: 'password' };
@@ -11,7 +11,7 @@ beforeAll(async () => {
   adminUser.email = Math.random().toString(36).substring(2, 12) + '@test.com';
   regularUser.email = Math.random().toString(36).substring(2, 12) + '@test.com';
 
-  // Register user (assume registration creates user with Admin role via your DB mock or logic)
+  // Register user (registration creates user with Admin role via DB mock or logic)
   const adminRes = await request(app).post('/api/auth').send(adminUser);
   adminAuthToken = adminRes.body.token;
 
