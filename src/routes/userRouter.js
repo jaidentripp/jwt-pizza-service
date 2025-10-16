@@ -22,6 +22,14 @@ userRouter.docs = [
     example: `curl -X PUT localhost:3000/api/user/1 -d '{"name":"常用名字", "email":"a@jwt.com", "password":"admin"}' -H 'Content-Type: application/json' -H 'Authorization: Bearer tttttt'`,
     response: { user: { id: 1, name: '常用名字', email: 'a@jwt.com', roles: [{ role: 'admin' }] }, token: 'tttttt' },
   },
+  {
+    method: 'GET',
+    path: '/api/user?page=1&limit=10&name=*',
+    requiresAuth: true,
+    description: 'Gets a list of users',
+    example: `curl -X GET localhost:3000/api/user -H 'Authorization: Bearer tttttt'`,
+    response: { user: {id: 1, name: '常用名字', email: 'a@jwt.com', roles: [{ role: 'admin' }] }},
+  },
 ];
 
 // getUser
@@ -50,5 +58,37 @@ userRouter.put(
     res.json({ user: updatedUser, token: auth });
   })
 );
+
+// listUsers
+userRouter.get(
+  '/',
+  authRouter.authenticateToken,
+  asyncHandler(async (req, res) => {
+    res.json({});
+  })
+);
+
+// list users
+// userRouter.get(
+//   '/',
+//   authRouter.authenticateToken,
+//   asyncHandler(async (req, res) => {
+//     // Only admin users can access
+//     if (!req.user?.isRole(Role.Admin)) {
+//       return res.status(403).json({ message: 'forbidden' });
+//     }
+
+//     // Pagination and filtering (optional)
+//     const page = parseInt(req.query.page ?? '0', 10);
+//     const limit = parseInt(req.query.limit ?? '10', 10);
+//     const nameFilter = req.query.name ?? '*';
+
+//     const [users, more] = await DB.getUsers(req.user, page, limit, nameFilter);
+
+//     res.json({ users, more });
+//   })
+// );
+
+
 
 module.exports = userRouter;

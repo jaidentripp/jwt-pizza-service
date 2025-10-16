@@ -69,7 +69,7 @@ authRouter.post(
   })
 );
 
-// login
+//login
 authRouter.put(
   '/',
   asyncHandler(async (req, res) => {
@@ -79,6 +79,24 @@ authRouter.put(
     res.json({ user: user, token: auth });
   })
 );
+
+// // login
+// authRouter.put(
+//   '/',
+//   asyncHandler(async (req, res) => {
+//     const { email, password } = req.body;
+//     if (!email || !password) {
+//       return res.status(400).json({ message: 'email and password are required' });
+//     }
+//     const user = await DB.getUser(email, password);
+//     if (!user) {
+//       return res.status(401).json({ message: 'invalid email or password' });
+//     }
+//     const auth = await setAuth(user);
+//     res.json({ user: user, token: auth });
+//   })
+// );
+
 
 // logout
 authRouter.delete(

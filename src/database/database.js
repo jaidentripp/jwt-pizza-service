@@ -360,6 +360,48 @@ class DB {
     const [rows] = await connection.execute(`SELECT SCHEMA_NAME FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME = ?`, [config.db.connection.database]);
     return rows.length > 0;
   }
+
+  async getUsers(authUser, page = 0, limit = 10, nameFilter = '*') {
+    const connection = await this.getConnection();
+    const offset = page * limit;
+    nameFilter = nameFilter.replace(/\*/g, '%');
+  
+    try {
+      // Only allow admins to list users
+      if (!authUser?.isRole || !authUser.isRole(Role.Admin)) {
+        throw new StatusCodeError('forbidden', 403);
+      }
+  
+      // Fetch users with pagination and name filter
+      let users = await this.query(
+        connection,
+        `SELECT id, name, email FROM user WHERE name LIKE ? LIMIT ${limit + 1} OFFSET ${offset}`,
+        [nameFilter]
+      );
+  
+      // Determine if there are more users beyond this page
+      const more = users.length > limit;
+      if (more) users = users.slice(0, limit);
+  
+      // Fetch roles for each user
+      for (const user of users) {
+        const rolesResult = await this.query(
+          connection,
+          `SELECT role, objectId FROM userRole WHERE userId=?`,
+          [user.id]
+        );
+        user.roles = rolesResult.map((r) => ({
+          role: r.role,
+          objectId: r.objectId || undefined,
+        }));
+      }
+  
+      return { users, more };
+    } finally {
+      connection.end();
+    }
+  }
+  
 }
 
 const db = new DB();
