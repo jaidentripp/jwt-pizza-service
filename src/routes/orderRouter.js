@@ -72,6 +72,8 @@ orderRouter.get(
   })
 );
 
+
+//const metrics = require('../metrics');
 // createOrder
 orderRouter.post(
   '/',
@@ -90,6 +92,47 @@ orderRouter.post(
     } else {
       res.status(500).send({ message: 'Failed to fulfill order at factory', followLinkToEndChaos: j.reportUrl });
     }
+
+
+
+
+
+    // const start = Date.now(); // start timer for latency
+    // const orderReq = req.body;
+
+    // // Keep your original logic exactly
+    // const order = await DB.addDinerOrder(req.user, orderReq);
+    // const r = await fetch(`${config.factory.url}/api/order`, {
+    //   method: 'POST',
+    //   headers: { 
+    //     'Content-Type': 'application/json', 
+    //     authorization: `Bearer ${config.factory.apiKey}` 
+    //   },
+    //   body: JSON.stringify({ 
+    //     diner: { id: req.user.id, name: req.user.name, email: req.user.email }, 
+    //     order 
+    //   }),
+    // });
+    // const j = await r.json();
+
+    // // Compute latency after response
+    // const latency = Date.now() - start;
+
+    // // Track pizza purchase metrics without changing your response logic
+    // if (r.ok) {
+    //   const totalCost = orderReq.items.reduce((sum, item) => sum + item.price, 0);
+    //   metrics.pizzaPurchase(true, latency, totalCost);
+    // } else {
+    //   metrics.pizzaPurchase(false, latency, 0);
+    // }
+
+    // // Keep your original response logic exactly
+    // if (r.ok) {
+    //   res.send({ order, followLinkToEndChaos: j.reportUrl, jwt: j.jwt });
+    // } else {
+    //   res.status(500).send({ message: 'Failed to fulfill order at factory', followLinkToEndChaos: j.reportUrl });
+    // }
+    
   })
 );
 

@@ -73,8 +73,26 @@ authRouter.post(
 authRouter.put(
   '/',
   asyncHandler(async (req, res) => {
+    //console.log('Login route hit:', req.body);
     const { email, password } = req.body;
     const user = await DB.getUser(email, password);
+
+   // console.log('DB.getUser result for', email, password, ':', user);
+
+    if (!user || !user.id) {
+      const metrics = require('../metrics');
+      metrics.trackAuthAttempt(false);
+
+      //console.log('Tracked failed login for', email);
+
+      return res.status(401).json({ message: 'invalid email or password' });
+    }
+
+    const metrics = require('../metrics');
+    metrics.trackAuthAttempt(true);
+
+    //console.log('Tracked successful login for', email);
+
     const auth = await setAuth(user);
     res.json({ user: user, token: auth });
   })
