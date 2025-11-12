@@ -4,6 +4,7 @@ const config = require('../config.js');
 const { StatusCodeError } = require('../endpointHelper.js');
 const { Role } = require('../model/model.js');
 const dbModel = require('./dbModel.js');
+const logger = require('../logger');
 class DB {
   constructor() {
     this.initialized = this.initializeDatabase();
@@ -293,9 +294,62 @@ class DB {
     return '';
   }
 
+  
+
   async query(connection, sql, params) {
+    // const [results] = await connection.execute(sql, params);
+    // return results;
+
+    const start = Date.now();
+  try {
     const [results] = await connection.execute(sql, params);
+    const durationMs = Date.now() - start;
+
+    // Log db query (info level)
+    try {
+      logger.log('info', 'db-query', {
+        sql,
+        params,
+        durationMs,
+        rowCount: Array.isArray(results) ? results.length : undefined,
+      });
+    } catch (e) {
+      // swallow logger errors
+      console.error('Failed to log DB query', e);
+    }
+
     return results;
+  } catch (err) {
+    const durationMs = Date.now() - start;
+    // Log failed query as error, but sanitize parameters
+    try {
+      logger.log('error', 'db-query-failed', {
+        sql,
+        params,
+        durationMs,
+        error: err.message,
+      });
+    } catch (e) {
+      console.error('Failed to log DB error', e);
+    }
+    throw err; // rethrow so calling code handles it
+  }
+
+    // const start = Date.now();
+    // try {
+    //   const [results] = await connection.execute(sql, params);
+    //   const duration = Date.now() - start;
+
+    //   // Log SQL query
+    //   const logger = require('../logger');
+    //   logger.log('info', 'db-query', { sql, params, durationMs: duration });
+
+    //   return results;
+    // } catch (err) {
+    //   const logger = require('../logger');
+    //   logger.log('error', 'db-query', { sql, params, error: err.message });
+    //   throw err;
+    // }
   }
 
   async getID(connection, key, value, table) {
