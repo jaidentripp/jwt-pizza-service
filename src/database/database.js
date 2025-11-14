@@ -305,51 +305,26 @@ class DB {
     const [results] = await connection.execute(sql, params);
     const durationMs = Date.now() - start;
 
-    // Log db query (info level)
-    try {
-      logger.log('info', 'db-query', {
-        sql,
-        params,
-        durationMs,
-        rowCount: Array.isArray(results) ? results.length : undefined,
-      });
-    } catch (e) {
-      // swallow logger errors
-      console.error('Failed to log DB query', e);
-    }
+    logger.logDbQuery({
+      sql,
+      params,
+      durationMs,
+      rowCount: Array.isArray(results) ? results.length : undefined
+    });
 
     return results;
-  } catch (err) {
-    const durationMs = Date.now() - start;
-    // Log failed query as error, but sanitize parameters
-    try {
-      logger.log('error', 'db-query-failed', {
+    } catch (err) {
+      const durationMs = Date.now() - start;
+
+      logger.logDbQuery({
         sql,
         params,
         durationMs,
-        error: err.message,
+        error: err
       });
-    } catch (e) {
-      console.error('Failed to log DB error', e);
+
+      throw err;
     }
-    throw err; // rethrow so calling code handles it
-  }
-
-    // const start = Date.now();
-    // try {
-    //   const [results] = await connection.execute(sql, params);
-    //   const duration = Date.now() - start;
-
-    //   // Log SQL query
-    //   const logger = require('../logger');
-    //   logger.log('info', 'db-query', { sql, params, durationMs: duration });
-
-    //   return results;
-    // } catch (err) {
-    //   const logger = require('../logger');
-    //   logger.log('error', 'db-query', { sql, params, error: err.message });
-    //   throw err;
-    // }
   }
 
   async getID(connection, key, value, table) {
@@ -361,7 +336,6 @@ class DB {
   }
 
   async getConnection() {
-    // Make sure the database is initialized before trying to get a connection.
     await this.initialized;
     return this._getConnection();
   }

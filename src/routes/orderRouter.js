@@ -3,6 +3,7 @@ const config = require('../config.js');
 const { Role, DB } = require('../database/database.js');
 const { authRouter } = require('./authRouter.js');
 const { asyncHandler, StatusCodeError } = require('../endpointHelper.js');
+const logger = require('../logger.js');
 
 const orderRouter = express.Router();
 
@@ -81,58 +82,72 @@ orderRouter.post(
   asyncHandler(async (req, res) => {
     const orderReq = req.body;
     const order = await DB.addDinerOrder(req.user, orderReq);
-    const r = await fetch(`${config.factory.url}/api/order`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', authorization: `Bearer ${config.factory.apiKey}` },
-      body: JSON.stringify({ diner: { id: req.user.id, name: req.user.name, email: req.user.email }, order }),
-    });
-    const j = await r.json();
-    if (r.ok) {
-      res.send({ order, followLinkToEndChaos: j.reportUrl, jwt: j.jwt });
-    } else {
-      res.status(500).send({ message: 'Failed to fulfill order at factory', followLinkToEndChaos: j.reportUrl });
+
+    const factoryUrl = `${config.factory.url}/api/order`;
+    const factoryReqBody = {
+      diner: {
+        id: req.user.id,
+        name: req.user.name,
+        email: req.user.email,
+      },
+      order,
+    };
+
+    let factoryRes;
+    let factoryResBody;
+
+    try {
+      factoryRes = await fetch(factoryUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          authorization: `Bearer ${config.factory.apiKey}`,
+        },
+        body: JSON.stringify(factoryReqBody),
+      });
+
+      const text = await factoryRes.text();
+      try {
+        factoryResBody = JSON.parse(text);
+      } catch {
+        factoryResBody = text;
+      }
+
+      // log successful 
+      logger.logFactoryRequest({
+        url: factoryUrl,
+        method: 'POST',
+        statusCode: factoryRes.status,
+        reqBody: factoryReqBody,
+        resBody: factoryResBody,
+      });
+
+      if (factoryRes.ok) {
+        const j = typeof factoryResBody === 'string' ? JSON.parse(factoryResBody) : factoryResBody;
+        res.send({ order, followLinkToEndChaos: j.reportUrl, jwt: j.jwt });
+      } else {
+        const j = typeof factoryResBody === 'string' ? {} : factoryResBody;
+        res.status(500).send({
+          message: 'Failed to fulfill order at factory',
+          followLinkToEndChaos: j.reportUrl,
+        });
+      }
+    } catch (err) {
+      //log failure 
+      logger.logFactoryRequest({
+        url: factoryUrl,
+        method: 'POST',
+        statusCode: factoryRes?.status,
+        reqBody: factoryReqBody,
+        resBody: factoryResBody,
+        error: err,
+      });
+
+      // let asyncHandler / error middleware deal with it
+      throw err;
     }
 
 
-
-
-
-    // const start = Date.now(); // start timer for latency
-    // const orderReq = req.body;
-
-    // // Keep your original logic exactly
-    // const order = await DB.addDinerOrder(req.user, orderReq);
-    // const r = await fetch(`${config.factory.url}/api/order`, {
-    //   method: 'POST',
-    //   headers: { 
-    //     'Content-Type': 'application/json', 
-    //     authorization: `Bearer ${config.factory.apiKey}` 
-    //   },
-    //   body: JSON.stringify({ 
-    //     diner: { id: req.user.id, name: req.user.name, email: req.user.email }, 
-    //     order 
-    //   }),
-    // });
-    // const j = await r.json();
-
-    // // Compute latency after response
-    // const latency = Date.now() - start;
-
-    // // Track pizza purchase metrics without changing your response logic
-    // if (r.ok) {
-    //   const totalCost = orderReq.items.reduce((sum, item) => sum + item.price, 0);
-    //   metrics.pizzaPurchase(true, latency, totalCost);
-    // } else {
-    //   metrics.pizzaPurchase(false, latency, 0);
-    // }
-
-    // // Keep your original response logic exactly
-    // if (r.ok) {
-    //   res.send({ order, followLinkToEndChaos: j.reportUrl, jwt: j.jwt });
-    // } else {
-    //   res.status(500).send({ message: 'Failed to fulfill order at factory', followLinkToEndChaos: j.reportUrl });
-    // }
-    
   })
 );
 

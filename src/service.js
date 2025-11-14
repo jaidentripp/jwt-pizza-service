@@ -8,8 +8,6 @@ const config = require('./config.js');
 
 const metrics = require('./metrics.js');
 
-//const logger = require('./logger.js');
-
 const app = express();
 
 const logger = require('./logger.js');
@@ -59,24 +57,8 @@ app.use('*', (req, res) => {
 
 // Default error handler for all exceptions and errors.
 app.use((err, req, res, next) => {
-  // res.status(err.statusCode ?? 500).json({ message: err.message, stack: err.stack });
-  // next();
-
-  try {
-    // Log the exception with context
-    logger.log('error', 'exception', {
-      message: err?.message,
-      stack: err?.stack,
-      path: req?.originalUrl,
-      method: req?.method,
-      authorized: !!req?.headers?.authorization,
-    });
-  } catch (e) {
-    console.error('Failed to log exception', e);
-  }
-
   res.status(err.statusCode ?? 500).json({ message: err.message, stack: err.stack });
-  // do not call next() here — this is the final handler
+  next();
 });
 
 module.exports = app;

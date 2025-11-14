@@ -1,7 +1,5 @@
-// logger.js
 const config = require('./config.js');
 
-// Use global fetch if available, otherwise fallback
 let fetchImpl = global.fetch;
 if (!fetchImpl) {
   try {
@@ -29,21 +27,71 @@ class Logger {
       return res.send(resBody);
     };
     next();
-};
+    };
 
-  // Core log function
+  logDbQuery({ sql, params, durationMs, rowCount, error }) {
+    const level = error ? 'error' : 'info';
+
+    const logData = {
+      sql,
+      params,
+      durationMs,
+      rowCount,
+      success: !error,
+      error: error
+        ? {
+            message: error.message,
+            code: error.code,
+          }
+        : undefined,
+    };
+
+    this.log(level, 'sql', logData);
+  }
+
+  logFactoryRequest({ url, method, statusCode, reqBody, resBody, error }) {
+    const level = error
+      ? 'error'
+      : this.statusToLogLevel(statusCode ?? 200);
+
+    let host, path;
+    try {
+      const u = new URL(url);
+      host = u.host;
+      path = u.pathname + u.search;
+    } catch {
+      // If URL parsing fails, just leave host/path undefined
+    }
+
+    const logData = {
+      url,
+      host,
+      path,
+      method,
+      statusCode,
+      reqBody: reqBody !== undefined ? JSON.stringify(reqBody) : undefined,
+      resBody: resBody !== undefined ? JSON.stringify(resBody) : undefined,
+      success: !error,
+      error: error
+        ? {
+            message: error.message,
+            stack: error.stack,
+          }
+        : undefined,
+    };
+
+    this.log(level, 'factory', logData);
+  }
+
   log(level, type, logData) {
     const labels = {
-      component: config.source,
+      component: config.logging.source,
       level: level,
       type: type
     };
+    const values = [this.nowString(), this.sanitize(logData)];
 
-    const values = [
-      [(Date.now() * 1000000).toString(), JSON.stringify(logData)]
-    ];
-
-    const event = { streams: [{ stream: labels, values }] };
+    const event = { streams: [{ stream: labels, values: [values] }] };
     this.sendLogToGrafana(event);
   }
 
@@ -53,16 +101,21 @@ class Logger {
     return 'info';
   }
 
-  sanitize(data) {
-    if (!data) return data;
-    let text = JSON.stringify(data);
-    return text.replace(/"password"\s*:\s*"[^"]*"/g, '"password":"****"');
+  nowString() {
+    return (Math.floor(Date.now()) * 1000000).toString();
+  }
+
+  sanitize(logData) {
+    if (!logData) return logData;
+    logData = JSON.stringify(logData);
+    return logData.replace(/"password"\s*:\s*"[^"]*"/g, '"password":"****"');
+    //return logData.replace(/\\"password\\":\s*\\"[^"]*\\"/g, '\\"password\\": \\"*****\\"');
   }
 
 sendLogToGrafana(event) {
-    console.log("Send log to grafana...");
+    //console.log("Send log to grafana...");
     const body = JSON.stringify(event);
-    console.log(body);
+    //console.log(body);
     fetch(`${config.logging.url}`, {
       method: 'post',
       body: body,
@@ -71,11 +124,9 @@ sendLogToGrafana(event) {
         Authorization: `Bearer ${config.logging.userId}:${config.logging.apiKey}`,
       },
     }).then((res) => {
-        console.log("Loki response:", res.status, res.text());
       if (!res.ok) {
-        res.json().then((errorData) => {
-          console.log('Failed to send log to Grafana:', errorData);
-        });
+        console.log('Failed to send log to Grafana');
+        console.log(res);
       }
     });
   }
