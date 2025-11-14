@@ -134,6 +134,7 @@ jobs:
 
       - name: Write config file
         run: |
+          mkdir -p src
           echo "module.exports = {
             jwtSecret: '${{ secrets.JWT_SECRET }}',
             db: {
