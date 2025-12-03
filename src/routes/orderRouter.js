@@ -4,8 +4,34 @@ const { Role, DB } = require('../database/database.js');
 const { authRouter } = require('./authRouter.js');
 const { asyncHandler, StatusCodeError } = require('../endpointHelper.js');
 const logger = require('../logger.js');
+const metrics = require('../metrics.js');
 
 const orderRouter = express.Router();
+
+
+
+let enableChaos = false;
+
+// CHAOS ENDPOINT (admin only)
+orderRouter.put(
+  '/chaos/:state',
+  authRouter.authenticateToken,
+  asyncHandler(async (req, res) => {
+    if (req.user.isRole(Role.Admin)) {
+      enableChaos = req.params.state === 'true';
+    }
+
+    res.json({ chaos: enableChaos });
+  })
+);
+
+orderRouter.post('/', (req, res, next) => {
+  if (enableChaos && Math.random() < 0.5) {
+    metrics.recordChaosFailure();
+    throw new StatusCodeError('Chaos monkey', 500);
+  }
+  next();
+});
 
 orderRouter.docs = [
   {

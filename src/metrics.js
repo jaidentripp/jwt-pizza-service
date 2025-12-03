@@ -32,6 +32,8 @@ class Metrics {
         failure: 0,
     };
 
+    this.chaosFailures = 0;
+
     this.startPeriodicSend(10000); // send every 10 seconds
   }
 
@@ -112,6 +114,10 @@ class Metrics {
     }
   }
 
+  recordChaosFailure() {
+    this.chaosFailures++;
+  }
+
   // System metrics
   getSystemMetrics() {
     const cpuUsage = (os.loadavg()[0] / os.cpus().length) * 100;
@@ -140,7 +146,7 @@ class Metrics {
         ? Math.floor(this.purchases.latencySum / this.purchases.total)
         : 0;
 
-        const activeUsersCount = this.getActiveUsersCount();
+    const activeUsersCount = this.getActiveUsersCount();
 
     const metrics = [
       { name: "http_requests_total", value: this.httpRequests.total, type: "sum", unit: "1" },
@@ -166,6 +172,8 @@ class Metrics {
 
       { name: "system_cpu_usage_percent", value: cpuUsage, type: "gauge", unit: "%" },
       { name: "system_memory_usage_percent", value: memoryUsage, type: "gauge", unit: "%" },
+
+      { name: "chaos_failures_total", value: this.chaosFailures, type: "sum", unit: "1"},
     ];
 
     return metrics;
